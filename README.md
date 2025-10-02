@@ -1,0 +1,1 @@
+gator is a CLI tool for RSS feed aggregation.
