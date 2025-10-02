@@ -28,10 +28,8 @@ WITH inserted_feed_follows AS (
     feeds.name AS feed_name,
     users.name AS user_name
 FROM inserted_feed_follows
-INNER JOIN feeds 
-    ON inserted_feed_follows.feed_id = feeds.id 
-INNER JOIN users 
-    ON inserted_feed_follows.user_id = users.id
+INNER JOIN feeds ON inserted_feed_follows.feed_id = feeds.id 
+INNER JOIN users ON inserted_feed_follows.user_id = users.id
 `
 
 type CreateFeedFollowsParams struct {
@@ -98,10 +96,8 @@ WITH feeds_followed_by_user AS (
     feeds.name AS feed_name,
     users.name AS user_name 
 FROM feeds_followed_by_user
-INNER JOIN feeds 
-    ON feeds_followed_by_user.feed_id = feeds.id
-INNER JOIN users 
-    ON feeds_followed_by_user.user_id = users.id
+INNER JOIN feeds ON feeds_followed_by_user.feed_id = feeds.id
+INNER JOIN users ON feeds_followed_by_user.user_id = users.id
 `
 
 type GetFeedFollowsForUserRow struct {

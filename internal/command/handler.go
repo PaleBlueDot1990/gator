@@ -3,6 +3,7 @@ package command
 import (
 	"context"
 	"fmt"
+	"strconv"
 	"time"
 
 	"github.com/PaleBlueDot1990/gator/internal/config"
@@ -239,11 +240,49 @@ func HandleAgg(state *config.State, cmd Command) error {
 
 	fmt.Printf("Collecting feeds every %v\n", timeBetweenReqs)
 	ticker := time.NewTicker(timeBetweenReqs)
-	
+
 	for ; ; <-ticker.C {
+		fmt.Printf("Collecting...\n")
 		err = rssfeed.ScrapeFeeds(context.Background(), state)
+		if err != nil {
+			fmt.Printf("Error scraping feeds - %v\n", err)
+		}
+	}
+}
+
+func HandleBrowse(state *config.State, cmd Command) error {
+	var limit int32
+	if len(cmd.Args) < 1 {
+		limit = 2
+	} else {
+		parsed, err := strconv.Atoi(cmd.Args[0])
 		if err != nil {
 			return err
 		}
+		limit = int32(parsed)
 	}
+
+	user, err := state.DbQueries.GetUser(context.Background(), state.Cfg.CURRENT_USER_NAME)
+	if err != nil {
+		return err 
+	}
+
+	dbQueryArgs := database.GetPostsByUserIdParams {
+		UserID: user.ID,
+		Limit: limit,
+	}
+
+	posts, err := state.DbQueries.GetPostsByUserId(context.Background(), dbQueryArgs)
+	if err != nil {
+		return err
+	}
+
+	for _, post := range posts {
+		fmt.Printf("--------------------------------------------------------\n")
+		fmt.Printf("%s\n", post.Title)
+		fmt.Printf("%s\n", post.Url)
+		fmt.Printf("%v\n", post.PublishedAt)
+		fmt.Printf("--------------------------------------------------------\n")
+	}
+	return nil
 }
