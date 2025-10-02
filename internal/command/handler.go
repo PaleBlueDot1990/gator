@@ -7,6 +7,7 @@ import (
 
 	"github.com/PaleBlueDot1990/gator/internal/config"
 	"github.com/PaleBlueDot1990/gator/internal/database"
+	"github.com/PaleBlueDot1990/gator/rssfeed"
 	"github.com/google/uuid"
 )
 
@@ -62,4 +63,161 @@ func HandlerRegister(state *config.State, cmd Command) error {
 	fmt.Printf("User Created Timestamp: %s\n", user.CreatedAt)
 	fmt.Printf("User Updated Timestamp: %s\n", user.UpdatedAt)
 	return nil
+}
+
+func HandleReset(state *config.State, cmd Command) error {
+	err := state.DbQueries.DeleteAllUsers(context.Background())
+	if err != nil {
+		return err
+	}
+
+	fmt.Printf("All the users have been deleted!\n")
+	return nil
+}
+
+func HandleUsers(state *config.State, cmd Command) error {
+	users, err := state.DbQueries.GetUsers(context.Background())
+	if err != nil {
+		return err
+	}
+
+	for _, user := range users {
+		if user.Name != state.Cfg.CURRENT_USER_NAME {
+			fmt.Printf("* %s\n", user.Name)
+		} else {
+			fmt.Printf("* %s (current)\n", user.Name)
+		}
+	}
+	return nil 
+}
+
+func HandleAddFeed(state *config.State, cmd Command) error {
+	if len(cmd.Args) < 2 {
+		return fmt.Errorf("the addfeed command expects two arguments: name of the feed, url of the feed")
+	}
+
+	feedName := cmd.Args[0]
+	feedUrl := cmd.Args[1]
+
+	user, err := state.DbQueries.GetUser(context.Background(), state.Cfg.CURRENT_USER_NAME)
+	if err != nil {
+		return err 
+	}
+
+	dbQueryArgs := database.CreateFeedParams {
+		ID: uuid.New(),
+		CreatedAt: time.Now(),
+		UpdatedAt: time.Now(),
+		Name: feedName,
+		Url: feedUrl,
+		UserID: user.ID,
+	}
+
+	feed, err := state.DbQueries.CreateFeed(context.Background(), dbQueryArgs)
+	if err != nil {
+		return err 
+	}
+
+	dbQueryArgs2 := database.CreateFeedFollowsParams {
+		ID: uuid.New(),
+		CreatedAt: time.Now(),
+		UpdatedAt: time.Now(),
+		UserID: user.ID,
+		FeedID: feed.ID,
+	}
+
+	_, err = state.DbQueries.CreateFeedFollows(context.Background(), dbQueryArgs2)
+	if err != nil {
+		return err
+	}
+
+	fmt.Printf("ID of Feed: %v\n", feed.ID)
+	fmt.Printf("Name of Feed: %s\n", feed.Name)
+	fmt.Printf("Feed Created Time Stamp: %v\n", feed.CreatedAt)
+	fmt.Printf("Feed Updated Time Stamp: %v\n", feed.UpdatedAt)
+	fmt.Printf("URL of Feed: %s\n", feed.Url)
+	fmt.Printf("User ID of Feed Owner: %v\n", feed.UserID)
+	return nil 
+}
+
+func HandleFeeds(state *config.State, cmd Command) error {
+	feeds, err := state.DbQueries.GetFeeds(context.Background())
+	if err != nil {
+		return err 
+	}
+
+	for _, feed := range feeds {
+		user, err := state.DbQueries.GetUserById(context.Background(), feed.UserID)
+		if err != nil {
+			return err 
+		}
+
+		fmt.Printf("Name of Feed: %s\n", feed.Name)
+		fmt.Printf("URL of Feed: %s\n", feed.Url)
+		fmt.Printf("Author of Feed: %s\n\n", user.Name)
+	}
+
+	return nil
+}
+
+func HandleFollow(state *config.State, cmd Command) error {
+	if len(cmd.Args) < 1 {
+		return fmt.Errorf("the follow command expects one argument: url of the feed to follow")
+	}
+
+	feedUrl := cmd.Args[0]
+	feed, err := state.DbQueries.GetFeedsByUrl(context.Background(), feedUrl)
+	if err != nil {
+		return err
+	}
+
+	user, err := state.DbQueries.GetUser(context.Background(), state.Cfg.CURRENT_USER_NAME)
+	if err != nil {
+		return err 
+	}
+
+	dbQueryArgs := database.CreateFeedFollowsParams {
+		ID: uuid.New(),
+		CreatedAt: time.Now(),
+		UpdatedAt: time.Now(),
+		UserID: user.ID,
+		FeedID: feed.ID,
+	}
+
+	feedFollows, err := state.DbQueries.CreateFeedFollows(context.Background(), dbQueryArgs)
+	if err != nil {
+		return err 
+	}
+
+	fmt.Printf("Name of Current User: %s\n", feedFollows.UserName)
+	fmt.Printf("Name of Feed Followed by User: %s\n", feedFollows.FeedName)
+	return nil;
+}
+
+func HandleFollowing(state *config.State, cmd Command) error {
+	user, err := state.DbQueries.GetUser(context.Background(), state.Cfg.CURRENT_USER_NAME)
+	if err != nil {
+		return err
+	}
+
+	feedFollowsForUser, err := state.DbQueries.GetFeedFollowsForUser(context.Background(), user.ID)
+	if err != nil {
+		return nil 
+	}
+
+	fmt.Printf("Feeds followed by User: %s\n", user.Name)
+	for _, feedFollow := range feedFollowsForUser {
+		fmt.Printf(" - %s\n", feedFollow.FeedName)
+	}
+	return nil
+}
+
+func HandleAgg(state *config.State, cmd Command) error {
+	feed, err := rssfeed.FetchFeed(context.Background(), "https://www.wagslane.dev/index.xml")
+	if err != nil {
+		return err 
+	}
+
+	fmt.Printf("%v\n", feed)
+	return nil 
 }

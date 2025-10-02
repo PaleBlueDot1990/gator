@@ -18,6 +18,13 @@ func main() {
 	}
 	cmds.Register("login", command.HandlerLogin)
 	cmds.Register("register", command.HandlerRegister)
+	cmds.Register("reset", command.HandleReset)
+	cmds.Register("users", command.HandleUsers)
+	cmds.Register("addfeed", command.HandleAddFeed)
+	cmds.Register("feeds", command.HandleFeeds)
+	cmds.Register("follow", command.HandleFollow)
+	cmds.Register("following", command.HandleFollowing)
+	cmds.Register("agg", command.HandleAgg)
 
 	// Getting the command from the command line interface 
 	args := os.Args
