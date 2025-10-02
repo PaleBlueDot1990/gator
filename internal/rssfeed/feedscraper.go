@@ -29,7 +29,13 @@ func ScrapeFeeds(ctx context.Context, state *config.State) error {
 	}
 
 	for _, item := range rssFeed.Channel.Item {
-		publishedAt := time.Now()
+		publishedAt := sql.NullTime{}
+		if t, err := time.Parse(time.RFC1123Z, item.PubDate); err == nil {
+			publishedAt = sql.NullTime{
+				Time:  t,
+				Valid: true,
+			}
+		}
 
 		dbQueryArgs := database.CreatePostParams {
 			ID: uuid.New(),
