@@ -190,6 +190,11 @@ func HandleFollowing(state *config.State, cmd Command, user database.User) error
 		return nil 
 	}
 
+	if len(feedFollowsForUser) == 0 {
+		fmt.Printf("You are not following any feed!\n")
+		return nil
+	}
+
 	fmt.Printf("Feeds followed by User: %s\n", user.Name)
 	for _, feedFollow := range feedFollowsForUser {
 		fmt.Printf(" - %s\n", feedFollow.FeedName)
@@ -197,12 +202,48 @@ func HandleFollowing(state *config.State, cmd Command, user database.User) error
 	return nil
 }
 
-func HandleAgg(state *config.State, cmd Command) error {
-	feed, err := rssfeed.FetchFeed(context.Background(), "https://www.wagslane.dev/index.xml")
-	if err != nil {
-		return err 
+func HandleUnfollow(state *config.State, cmd Command, user database.User) error {
+	if len(cmd.Args) < 1 {
+		return fmt.Errorf("the unfollow command expetcs a single argument: the url of the feed to unfollow")
 	}
 
-	fmt.Printf("%v\n", feed)
+	feedUrl := cmd.Args[0]
+	feed, err := state.DbQueries.GetFeedsByUrl(context.Background(), feedUrl)
+	if err != nil {
+		return err
+	}
+
+	dbQueryArgs := database.DeleteFeedFollowsParams {
+		FeedID: feed.ID,
+		UserID: user.ID,
+	}
+
+	err = state.DbQueries.DeleteFeedFollows(context.Background(), dbQueryArgs)
+	if err != nil {
+		return err
+	}
+
+	fmt.Printf("You have unfollowed the feed!\n")
 	return nil 
+}
+
+func HandleAgg(state *config.State, cmd Command) error {
+	if len(cmd.Args) < 1 {
+		return fmt.Errorf("the agg command expetcs a single argument: the duration between each feed scraping job")
+	}
+
+	timeBetweenReqs, err := time.ParseDuration(cmd.Args[0])
+	if err != nil {
+		return err
+	}
+
+	fmt.Printf("Collecting feeds every %v\n", timeBetweenReqs)
+	ticker := time.NewTicker(timeBetweenReqs)
+	
+	for ; ; <-ticker.C {
+		err = rssfeed.ScrapeFeeds(context.Background(), state)
+		if err != nil {
+			return err
+		}
+	}
 }

@@ -25,6 +25,7 @@ func main() {
 	cmds.Register("feeds", command.HandleFeeds)
 	cmds.Register("follow", middleware.LoggedIn(command.HandleFollow))
 	cmds.Register("following", middleware.LoggedIn(command.HandleFollowing))
+	cmds.Register("unfollow", middleware.LoggedIn(command.HandleUnfollow))
 	cmds.Register("agg", command.HandleAgg)
 
 	// Getting the command from the command line interface 
