@@ -8,6 +8,7 @@ import (
 	"github.com/PaleBlueDot1990/gator/internal/command"
 	"github.com/PaleBlueDot1990/gator/internal/config"
 	"github.com/PaleBlueDot1990/gator/internal/database"
+	"github.com/PaleBlueDot1990/gator/internal/middleware"
 	_ "github.com/lib/pq"
 )
 
@@ -20,10 +21,10 @@ func main() {
 	cmds.Register("register", command.HandlerRegister)
 	cmds.Register("reset", command.HandleReset)
 	cmds.Register("users", command.HandleUsers)
-	cmds.Register("addfeed", command.HandleAddFeed)
+	cmds.Register("addfeed", middleware.LoggedIn(command.HandleAddFeed))
 	cmds.Register("feeds", command.HandleFeeds)
-	cmds.Register("follow", command.HandleFollow)
-	cmds.Register("following", command.HandleFollowing)
+	cmds.Register("follow", middleware.LoggedIn(command.HandleFollow))
+	cmds.Register("following", middleware.LoggedIn(command.HandleFollowing))
 	cmds.Register("agg", command.HandleAgg)
 
 	// Getting the command from the command line interface 

@@ -7,7 +7,7 @@ import (
 
 	"github.com/PaleBlueDot1990/gator/internal/config"
 	"github.com/PaleBlueDot1990/gator/internal/database"
-	"github.com/PaleBlueDot1990/gator/rssfeed"
+	"github.com/PaleBlueDot1990/gator/internal/rssfeed"
 	"github.com/google/uuid"
 )
 
@@ -91,18 +91,13 @@ func HandleUsers(state *config.State, cmd Command) error {
 	return nil 
 }
 
-func HandleAddFeed(state *config.State, cmd Command) error {
+func HandleAddFeed(state *config.State, cmd Command, user database.User) error {
 	if len(cmd.Args) < 2 {
 		return fmt.Errorf("the addfeed command expects two arguments: name of the feed, url of the feed")
 	}
 
 	feedName := cmd.Args[0]
 	feedUrl := cmd.Args[1]
-
-	user, err := state.DbQueries.GetUser(context.Background(), state.Cfg.CURRENT_USER_NAME)
-	if err != nil {
-		return err 
-	}
 
 	dbQueryArgs := database.CreateFeedParams {
 		ID: uuid.New(),
@@ -160,7 +155,7 @@ func HandleFeeds(state *config.State, cmd Command) error {
 	return nil
 }
 
-func HandleFollow(state *config.State, cmd Command) error {
+func HandleFollow(state *config.State, cmd Command, user database.User) error {
 	if len(cmd.Args) < 1 {
 		return fmt.Errorf("the follow command expects one argument: url of the feed to follow")
 	}
@@ -169,11 +164,6 @@ func HandleFollow(state *config.State, cmd Command) error {
 	feed, err := state.DbQueries.GetFeedsByUrl(context.Background(), feedUrl)
 	if err != nil {
 		return err
-	}
-
-	user, err := state.DbQueries.GetUser(context.Background(), state.Cfg.CURRENT_USER_NAME)
-	if err != nil {
-		return err 
 	}
 
 	dbQueryArgs := database.CreateFeedFollowsParams {
@@ -194,12 +184,7 @@ func HandleFollow(state *config.State, cmd Command) error {
 	return nil;
 }
 
-func HandleFollowing(state *config.State, cmd Command) error {
-	user, err := state.DbQueries.GetUser(context.Background(), state.Cfg.CURRENT_USER_NAME)
-	if err != nil {
-		return err
-	}
-
+func HandleFollowing(state *config.State, cmd Command, user database.User) error {
 	feedFollowsForUser, err := state.DbQueries.GetFeedFollowsForUser(context.Background(), user.ID)
 	if err != nil {
 		return nil 
